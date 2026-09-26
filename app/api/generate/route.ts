@@ -28,7 +28,7 @@ async function generateInternal(req:NextRequest){
   let raw:any, model='gemini-2.5-flash';
   // On overload switch models immediately; do not burn the entire demo wait on
   // another request to the same saturated pool. A timed-out attempt also falls back.
-  for(const [i,name] of ['gemini-2.5-flash','gemini-2.5-flash-lite','gemini-2.5-flash-lite'].entries()){
+  for(const [i,name] of ['gemini-2.5-flash','gemini-3.1-flash-lite','gemini-3.1-flash-lite'].entries()){
    model=name;
    if(i)await new Promise(resolve=>setTimeout(resolve,600*i+Math.floor(Math.random()*200)));
    try{
