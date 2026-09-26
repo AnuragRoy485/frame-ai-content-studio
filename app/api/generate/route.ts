@@ -3,7 +3,7 @@ export const runtime = 'nodejs';
 const channels = ['Instagram','YouTube','X'] as const;
 const rules = {Instagram:{ratio:'4:5',limit:2200},YouTube:{ratio:'16:9',limit:5000},X:{ratio:'1:1',limit:280}};
 function clean(v:unknown,n=500){return String(v||'').replace(/[<>]/g,'').slice(0,n)}
-export async function POST(req:NextRequest){
+async function generateInternal(req:NextRequest){
  try{
   const input=await req.json(); const brief=clean(input.brief,1200); const title=clean(input.title,100); const audience=clean(input.audience,100);
   if(!title || brief.length<20) return NextResponse.json({error:'Add a title and a brief of at least 20 characters.'},{status:400});
@@ -17,4 +17,26 @@ export async function POST(req:NextRequest){
   const posts=channels.map(channel=>{let p=parsed.posts.find((x:{channel:string})=>x.channel===channel); let colors=(Array.isArray(p.palette)?p.palette:[]).map((x:unknown)=>/^#[0-9a-fA-F]{6}$/.test(String(x))?x:'#282037');return {id:crypto.randomUUID(),channel,headline:clean(p.headline,70),bengali:clean(p.bengali,400),english:clean(p.english,400),caption:clean(p.caption,rules[channel].limit),visual:clean(p.visual,300),palette:[colors[0]||'#E99482',colors[1]||'#1B1C30',colors[2]||'#F9E0BA'],motif:['moon','rain','city','letter','train','window'].includes(p.motif)?p.motif:'moon',ratio:rules[channel].ratio,status:'draft',createdAt:new Date().toISOString()}});
   return NextResponse.json({posts,rationale:clean(parsed.rationale,300),model:'Gemini 2.5 Flash'});
  }catch(e){return NextResponse.json({error:e instanceof Error?e.message:'Generation failed'},{status:500})}
+}
+
+// Flush JSON whitespace early and keep the connection active while Gemini thinks.
+// Whitespace is valid before a JSON document and the client still receives one JSON object.
+export async function POST(req:NextRequest){
+ const encoder=new TextEncoder();
+ const stream=new ReadableStream<Uint8Array>({
+  start(controller){
+   controller.enqueue(encoder.encode(' '));
+   const heartbeat=setInterval(()=>{try{controller.enqueue(encoder.encode(' '))}catch{}},2500);
+   void generateInternal(req).then(async result=>{
+    clearInterval(heartbeat);
+    controller.enqueue(encoder.encode(await result.text()));
+    controller.close();
+   }).catch(error=>{
+    clearInterval(heartbeat);
+    controller.enqueue(encoder.encode(JSON.stringify({error:error instanceof Error?error.message:'Generation failed'})));
+    controller.close();
+   });
+  }
+ });
+ return new Response(stream,{headers:{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}});
 }
