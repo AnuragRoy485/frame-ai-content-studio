@@ -43,7 +43,7 @@ async function generateInternal(req:NextRequest){
     const txt=raw.candidates?.[0]?.content?.parts?.map((p:{text?:string})=>p.text||'').join('')||'';
     try{parsed=JSON.parse(txt)}catch{parsed=null}
     if(Array.isArray(parsed?.posts)&&parsed.posts.length===3&&channels.every(c=>parsed.posts.filter((p:{channel:string})=>p.channel===c).length===1))break;
-    console.warn('Generation returned malformed channels or JSON',{model:name,finishReason:raw.candidates?.[0]?.finishReason,bodyLength:txt.length});
+    console.warn('Generation returned malformed channels or JSON',{model:name,finishReason:raw.candidates?.[0]?.finishReason,bodyLength:txt.length,parsed:!!parsed,channels:Array.isArray(parsed?.posts)?parsed.posts.map((p:{channel?:string})=>p.channel).slice(0,5):[]});
     if(i===2)return NextResponse.json({error:'AI returned an incomplete campaign after retries. Please try again.'},{status:502});
    }catch(e){
     console.warn('Generation provider timeout',{model:name,error:e instanceof Error?e.name:'unknown'});
