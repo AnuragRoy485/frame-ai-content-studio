@@ -35,7 +35,7 @@ async function generateInternal(req:NextRequest){
     const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${name}:generateContent?key=${encodeURIComponent(key)}`,{method:'POST',headers:{'Content-Type':'application/json'},body:requestBody,cache:'no-store',signal:AbortSignal.timeout(i===0?18000:23000)});
     raw=await r.json();
     if(r.ok)break;
-    console.warn('Generation provider failure', {model:name,status:r.status,reason:raw?.error?.status});
+    console.warn('Generation provider failure', {model:name,status:r.status,reason:raw?.error?.status,detail:clean(raw?.error?.message,300)});
     if([400,401,403].includes(r.status))return NextResponse.json({error:'AI key or request was rejected. Check the project API key and configuration.'},{status:502});
     if(![408,429,500,502,503,504].includes(r.status)||i===2)return NextResponse.json({error:r.status===429?'AI free-tier rate limit reached. Try again later.':`AI service unavailable (${r.status}). Please try again shortly.`},{status:502});
    }catch(e){
