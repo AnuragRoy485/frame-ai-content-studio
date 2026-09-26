@@ -33,7 +33,7 @@ async function generateInternal(req:NextRequest){
    if(i)await new Promise(resolve=>setTimeout(resolve,600*i+Math.floor(Math.random()*200)));
    try{
     const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${name}:generateContent?key=${encodeURIComponent(key)}`,{method:'POST',headers:{'Content-Type':'application/json'},body:requestBody,cache:'no-store',signal:AbortSignal.timeout(i===0?18000:23000)});
-    raw=await r.json();lastStatus=r.status;
+    raw=await r.json();
     if(r.ok)break;
     console.warn('Generation provider failure', {model:name,status:r.status,reason:raw?.error?.status});
     if([400,401,403].includes(r.status))return NextResponse.json({error:'AI key or request was rejected. Check the project API key and configuration.'},{status:502});
