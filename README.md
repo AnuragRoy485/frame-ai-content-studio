@@ -45,7 +45,7 @@ AI weekly memo with exact post-ID citations
 - **Made for each channel:** Distinct art direction and platform-specific Bengali and English copy; three generated SVG layouts, not one image cropped three times.
 - **A real approval gate:** Drafts cannot enter the queue without review. Editing a caption resets it to draft.
 - **Visible validation lab:** Try bad ratios, oversized files and overlong captions. Judges can upload a PNG/JPEG/WebP to test dimensions and bytes; test files do not replace a post asset.
-- **A rejecting adapter:**** Copy length, image aspect ratio, MIME type and byte size are checked before mock scheduling or publishing.
+- **A rejecting adapter:** Copy length, image aspect ratio, MIME type and byte size are checked before mock scheduling or publishing.
 - **A traceable feedback loop:** Reports cite post IDs, compare engagement and CTR against impressions, and feed a specific hypothesis into the next brief.
 
 ## Run it locally

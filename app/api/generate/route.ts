@@ -25,26 +25,31 @@ async function generateInternal(req:NextRequest){
   // blocked key is a 4xx and must not be mistaken for an overload or retried.
   // Both models below have a free text-output tier; no billing is enabled here.
   const requestBody=JSON.stringify({contents:[{parts:[{text:prompt}]}],generationConfig:{responseMimeType:'application/json',temperature:.85}});
-  let raw:any, model='gemini-2.5-flash';
-  // On overload switch models immediately; do not burn the entire demo wait on
-  // another request to the same saturated pool. A timed-out attempt also falls back.
+  let parsed:any, model='gemini-2.5-flash';
+  // Retry transient upstream failures and malformed/truncated structured output.
+  // Preserve the brief and return nothing until all three channels validate.
   for(const [i,name] of ['gemini-2.5-flash','gemini-3.1-flash-lite','gemini-3.1-flash-lite'].entries()){
    model=name;
    if(i)await new Promise(resolve=>setTimeout(resolve,600*i+Math.floor(Math.random()*200)));
    try{
     const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${name}:generateContent?key=${encodeURIComponent(key)}`,{method:'POST',headers:{'Content-Type':'application/json'},body:requestBody,cache:'no-store',signal:AbortSignal.timeout(i===0?18000:23000)});
-    raw=await r.json();
-    if(r.ok)break;
-    console.warn('Generation provider failure', {model:name,status:r.status,reason:raw?.error?.status,detail:clean(raw?.error?.message,300)});
-    if([400,401,403].includes(r.status))return NextResponse.json({error:'AI key or request was rejected. Check the project API key and configuration.'},{status:502});
-    if(![408,429,500,502,503,504].includes(r.status)||i===2)return NextResponse.json({error:r.status===429?'AI free-tier rate limit reached. Try again later.':`AI service unavailable (${r.status}). Please try again shortly.`},{status:502});
+    const raw=await r.json();
+    if(!r.ok){
+     console.warn('Generation provider failure',{model:name,status:r.status,reason:raw?.error?.status});
+     if([400,401,403].includes(r.status))return NextResponse.json({error:'AI key or request was rejected. Check the project API key and configuration.'},{status:502});
+     if(![408,429,500,502,503,504].includes(r.status)||i===2)return NextResponse.json({error:r.status===429?'AI free-tier rate limit reached. Try again later.':`AI service unavailable (${r.status}). Please try again shortly.`},{status:502});
+     continue;
+    }
+    const txt=raw.candidates?.[0]?.content?.parts?.map((p:{text?:string})=>p.text||'').join('')||'';
+    try{parsed=JSON.parse(txt)}catch{parsed=null}
+    if(Array.isArray(parsed?.posts)&&parsed.posts.length===3&&channels.every(c=>parsed.posts.filter((p:{channel:string})=>p.channel===c).length===1))break;
+    console.warn('Generation returned malformed channels or JSON',{model:name,finishReason:raw.candidates?.[0]?.finishReason,bodyLength:txt.length});
+    if(i===2)return NextResponse.json({error:'AI returned an incomplete campaign after retries. Please try again.'},{status:502});
    }catch(e){
-    console.warn('Generation provider timeout', {model:name,error:e instanceof Error?e.name:'unknown'});
+    console.warn('Generation provider timeout',{model:name,error:e instanceof Error?e.name:'unknown'});
     if(i===2)return NextResponse.json({error:'The AI service timed out across available free models. Try again later.'},{status:502});
    }
   }
-  const txt=raw.candidates?.[0]?.content?.parts?.map((p:{text?:string})=>p.text||'').join('')||''; let parsed; try{parsed=JSON.parse(txt)}catch{return NextResponse.json({error:'AI returned invalid JSON. Retry generation.'},{status:502})}
-  if(!Array.isArray(parsed.posts) || parsed.posts.length!==3 || channels.some(c=>parsed.posts.filter((p:{channel:string})=>p.channel===c).length!==1)) return NextResponse.json({error:'AI response missed required channels. Retry.'},{status:502});
   const posts=channels.map(channel=>{let p=parsed.posts.find((x:{channel:string})=>x.channel===channel); let colors=(Array.isArray(p.palette)?p.palette:[]).map((x:unknown)=>/^#[0-9a-fA-F]{6}$/.test(String(x))?x:'#282037');return {id:crypto.randomUUID(),channel,headline:clean(p.headline,70),bengali:clean(p.bengali,400),english:clean(p.english,400),caption:bilingualCaption(p,channel),visual:clean(p.visual,300),palette:[colors[0]||'#E99482',colors[1]||'#1B1C30',colors[2]||'#F9E0BA'],motif:['moon','rain','city','letter','train','window'].includes(p.motif)?p.motif:'moon',scene:Array.isArray(p.scene)?p.scene.slice(0,36).map((x:Record<string,unknown>)=>({kind:['rect','circle','line','polygon'].includes(String(x.kind))?x.kind:'circle',x:Number(x.x)||0,y:Number(x.y)||0,w:Number(x.w)||0,h:Number(x.h)||0,r:Number(x.r)||0,x2:Number(x.x2)||0,y2:Number(x.y2)||0,points:Array.isArray(x.points)?x.points.slice(0,60).map(Number):[],fill:String(x.fill||'#ead4c6'),stroke:String(x.stroke||''),sw:Number(x.sw)||0,opacity:Number(x.opacity)||1})):[],ratio:rules[channel].ratio,status:'draft',createdAt:new Date().toISOString()}});
   return NextResponse.json({posts,rationale:clean(parsed.rationale,300),model:'AI creative engine',generationModel:model});
  }catch(e){return NextResponse.json({error:e instanceof Error?e.message:'Generation failed'},{status:500})}
