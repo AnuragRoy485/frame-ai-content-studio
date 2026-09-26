@@ -12,7 +12,7 @@
 
 ---
 
-Frame is a working prototype for **Problem 3: AI Content Studio & Multi-Platform Command Center**. Give it a title, audience and story hook. It creates three different visual and copy directions for Instagram, YouTube and X, asks for your approval, simulates publishing, then turns *labelled synthetic data* into a cited next-campaign insight.
+Frame is a working prototype for **Problem 3: AI Content Studio & Multi-Platform Command Center**. Give it a title, audience and story hook. It creates three different model-directed SVG illustrations and copy directions for Instagram, YouTube and X, asks for your approval, simulates publishing, then turns *labelled synthetic data* into a cited next-campaign insight.
 
 > Built with AI assistance by Anurag Roy. Independent hackathon prototype, not an official hoichoi product. No real social accounts or analytics are connected.
 
@@ -44,7 +44,8 @@ AI weekly memo with exact post-ID citations
 
 - **Made for each channel:** Distinct art direction and platform-specific Bengali and English copy; three generated SVG layouts, not one image cropped three times.
 - **A real approval gate:** Drafts cannot enter the queue without review. Editing a caption resets it to draft.
-- **A rejecting adapter:** Copy length, image aspect ratio, MIME type and byte size are checked before mock scheduling or publishing.
+- **Visible validation lab:** Try bad ratios, oversized files and overlong captions. Judges can upload a PNG/JPEG/WebP to test dimensions and bytes; test files do not replace a post asset.
+- **A rejecting adapter:**** Copy length, image aspect ratio, MIME type and byte size are checked before mock scheduling or publishing.
 - **A traceable feedback loop:** Reports cite post IDs, compare engagement and CTR against impressions, and feed a specific hypothesis into the next brief.
 
 ## Run it locally
@@ -98,7 +99,7 @@ Import this repository as a Next.js project, then set `GEMINI_API_KEY`, `NEXT_PU
 
 ## Tech and boundaries
 
-Next.js 15, React 19, TypeScript, Supabase Auth, server-side model requests, generated SVG compositions and CSS motion. The published metrics are deterministic demo values, not a claim about a real audience. Workspace drafts, posts and reports are saved in the current browser's `localStorage`, **not synced to the Supabase user account**. The posters are original graphic studies driven by AI art direction, not photorealistic image generation or video. No copyrighted title assets or social-network posting permissions are used.
+Next.js 15, React 19, TypeScript, Supabase Auth, server-side model requests, generated SVG compositions and CSS motion. The published metrics are deterministic demo values, not a claim about a real audience. Workspace drafts, posts and reports are saved in the current browser's `localStorage`, **not synced to the Supabase user account**. The posters are AI-directed vector illustrations: the model specifies scene geometry, colors and copy per channel, and the app renders its geometry as SVG. They are not photorealistic raster generation or video; the optional built-in motif is a fallback when a model omits scene geometry. No copyrighted title assets or social-network posting permissions are used.
 
 ---
 
